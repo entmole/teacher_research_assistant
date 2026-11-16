@@ -95,6 +95,41 @@ export type ProgressRecordRow = {
   created_at: string;
 };
 
+export type StudentRow = {
+  id: string;
+  owner_id: string;
+  classroom_id: string;
+  student_number: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type AssessmentRow = {
+  id: string;
+  owner_id: string;
+  subject_id: string;
+  unit_id: string | null;
+  title: string;
+  criteria_a: string;
+  criteria_b: string;
+  criteria_c: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Grade = "A" | "B" | "C";
+
+export type AssessmentResultRow = {
+  id: string;
+  owner_id: string;
+  assessment_id: string;
+  student_id: string;
+  grade: Grade | null;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -145,6 +180,32 @@ export type Database = {
         ProgressRecordRow,
         { owner_id: string; classroom_id: string; lesson_id: string; taught_on: string }
       >;
+      students: Table<
+        StudentRow,
+        { owner_id: string; classroom_id: string; student_number: number; is_active?: boolean }
+      >;
+      assessments: Table<
+        AssessmentRow,
+        {
+          owner_id: string;
+          subject_id: string;
+          unit_id?: string | null;
+          title: string;
+          criteria_a?: string;
+          criteria_b?: string;
+          criteria_c?: string;
+        }
+      >;
+      assessment_results: Table<
+        AssessmentResultRow,
+        {
+          owner_id: string;
+          assessment_id: string;
+          student_id: string;
+          grade?: Grade | null;
+          comment?: string;
+        }
+      >;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -156,6 +217,10 @@ export type Database = {
           p_lessons: string[];
         };
         Returns: string;
+      };
+      set_student_count: {
+        Args: { p_classroom_id: string; p_count: number };
+        Returns: undefined;
       };
     };
     Enums: { [_ in never]: never };
