@@ -15,6 +15,8 @@ export type ProfileRow = {
   id: string;
   teacher_type: TeacherType;
   specialist_subjects: string[];
+  ai_enabled: boolean;
+  style_rules: string;
   created_at: string;
   updated_at: string;
 };
@@ -135,7 +137,13 @@ export type Database = {
     Tables: {
       profiles: Table<
         ProfileRow,
-        { id: string; teacher_type?: TeacherType; specialist_subjects?: string[] }
+        {
+          id: string;
+          teacher_type?: TeacherType;
+          specialist_subjects?: string[];
+          ai_enabled?: boolean;
+          style_rules?: string;
+        }
       >;
       school_settings: Table<
         SchoolSettingsRow,
@@ -217,6 +225,10 @@ export type Database = {
           p_lessons: string[];
         };
         Returns: string;
+      };
+      consume_ai_request: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
       set_student_count: {
         Args: { p_classroom_id: string; p_count: number };

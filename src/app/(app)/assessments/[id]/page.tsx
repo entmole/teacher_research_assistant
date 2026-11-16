@@ -14,6 +14,7 @@ import { GRADES } from "@/features/assessment/types";
 import { subjectLabel } from "@/features/progress/types";
 import { classroomLabel } from "@/features/timetable/types";
 import { isUuid } from "@/lib/action-result";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { cardClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "평가 결과 입력" };
@@ -37,9 +38,12 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pro
   const classParam = firstValue((await searchParams).class);
   const classroom = classrooms.find((c) => c.id === classParam) ?? classrooms[0] ?? null;
 
-  const [units, results] = await Promise.all([
+  const user = await requireUser();
+  const supabase = await createClient();
+  const [units, results, profile] = await Promise.all([
     loadUnitOptions(subject.id),
     classroom ? loadClassResults(assessment.id, classroom.id) : Promise.resolve([]),
+    supabase.from("profiles").select("ai_enabled").eq("id", user.id).maybeSingle(),
   ]);
   const hasCriteria = GRADES.some((grade) => assessment.criteria[grade] !== "");
 
@@ -72,10 +76,10 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pro
             {subject.grade}학년 담당 학급이 없습니다
           </h2>
           <p className="mt-2 text-sm text-stone-600">
-            학교 설정에서 이 학년의 담당 학급을 추가해 주세요.
+            설정에서 이 학년의 담당 학급을 추가해 주세요.
           </p>
           <Link href="/settings/school" className={`${primaryButtonClass} mt-5`}>
-            학교 설정으로 이동
+            설정으로 이동
           </Link>
         </section>
       ) : (
@@ -119,6 +123,7 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pro
               key={`results-${classroom.id}-${results.length}`}
               assessmentId={assessment.id}
               initialResults={results}
+              aiEnabled={profile.data?.ai_enabled ?? false}
             />
           )}
         </>

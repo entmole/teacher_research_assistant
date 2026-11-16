@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { AiSettingsForm } from "@/features/ai/AiSettingsForm";
 import { ClassroomManager } from "@/features/school/ClassroomManager";
 import { ProfileForm } from "@/features/school/ProfileForm";
 import { SchoolSearch } from "@/features/school/SchoolSearch";
 import type { ClassroomRef } from "@/features/timetable/types";
+import { isAiConfigured } from "@/lib/ai";
 import { schoolYearOf, todayKst } from "@/lib/date";
 import { fetchClasses } from "@/lib/neis/api";
 import { NeisError } from "@/lib/neis/client";
@@ -10,7 +12,7 @@ import type { NeisClass, SchoolKey } from "@/lib/neis/types";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { cardClass } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "학교 설정" };
+export const metadata: Metadata = { title: "설정" };
 
 /** NEIS 학급 목록. 실패해도 직접 추가는 가능하므로 빈 목록으로 대체한다. */
 async function loadNeisClasses(school: SchoolKey, schoolYear: number): Promise<NeisClass[]> {
@@ -53,7 +55,7 @@ export default async function SchoolSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <h1 className="text-2xl font-bold text-stone-900">학교 설정</h1>
+      <h1 className="text-2xl font-bold text-stone-900">설정</h1>
 
       <section className={cardClass} aria-labelledby="school-section-title">
         <h2 id="school-section-title" className="text-base font-semibold text-stone-900">
@@ -91,6 +93,17 @@ export default async function SchoolSettingsPage() {
           3. 담당 학급
         </h2>
         <ClassroomManager schoolYear={schoolYear} classrooms={classrooms} suggestions={suggestions} />
+      </section>
+
+      <section className={cardClass} aria-labelledby="ai-section-title">
+        <h2 id="ai-section-title" className="mb-3 text-base font-semibold text-stone-900">
+          4. AI 문체 교정
+        </h2>
+        <AiSettingsForm
+          aiEnabled={profile.data?.ai_enabled ?? false}
+          styleRules={profile.data?.style_rules ?? ""}
+          isServerConfigured={isAiConfigured()}
+        />
       </section>
     </div>
   );

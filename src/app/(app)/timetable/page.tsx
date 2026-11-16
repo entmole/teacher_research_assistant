@@ -122,7 +122,7 @@ function SetupNotice({ hasSchool }: { hasSchool: boolean }) {
           : "먼저 학교를 검색해 등록하고, 담당 학급을 추가해 주세요."}
       </p>
       <Link href="/settings/school" className={`${primaryButtonClass} mt-5`}>
-        학교 설정으로 이동
+        설정으로 이동
       </Link>
     </section>
   );

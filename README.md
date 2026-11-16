@@ -1,6 +1,6 @@
 # 교사 업무수첩
 
-초등 교사를 위한 업무 웹앱입니다. 현재 **3단계**까지 구현: 로그인, 학교 설정, 주간 시간표, 학사일정, 진도 관리, 평가 기록.
+초등 교사를 위한 업무 웹앱입니다. 현재 **4단계**까지 구현: 로그인, 학교 설정, 주간 시간표, 학사일정, 진도 관리, 평가 기록, AI 문체 교정.
 
 - 스택: Next.js(App Router) · TypeScript · Tailwind · Supabase(Auth + Postgres, RLS) · Vercel
 - 시간표·학사일정은 NEIS Open API 에서 불러오고, 직접 수정한 칸만 DB에 저장합니다.
@@ -10,8 +10,9 @@
 
 1. **Supabase**: 프로젝트를 만들고 SQL Editor 에서 `supabase/migrations/` 의 SQL 파일을 번호 순서대로 실행합니다.
 2. **NEIS 인증키**: [open.neis.go.kr](https://open.neis.go.kr) 에서 인증키를 발급받습니다.
-3. **환경변수**: `.env.example` 을 `.env.local` 로 복사해 값을 채웁니다.
-4. 실행
+3. **Gemini API 키(선택)**: AI 문체 교정을 쓰려면 Google AI Studio 에서 키를 발급받습니다.
+4. **환경변수**: `.env.example` 을 `.env.local` 로 복사해 값을 채웁니다.
+5. 실행
 
 ```bash
 npm install
@@ -21,7 +22,7 @@ npm run dev
 ## 배포 (Vercel)
 
 1. GitHub 저장소를 Vercel 에 연결합니다.
-2. Vercel 프로젝트 환경변수에 `.env.example` 의 세 값을 등록합니다. (`NEIS_API_KEY` 는 `NEXT_PUBLIC_` 접두사 없이)
+2. Vercel 프로젝트 환경변수에 `.env.example` 의 값을 등록합니다. (`NEIS_API_KEY`, `GEMINI_API_KEY` 는 `NEXT_PUBLIC_` 접두사 없이)
 3. Supabase > Authentication > URL Configuration 의 Site URL 과 Redirect URLs 에
    배포 주소와 `https://<배포주소>/auth/callback` 을 추가합니다.
 
@@ -47,8 +48,9 @@ src/
 │  ├─ (app)/assessments/     평가 목록, 학생 번호별 등급·코멘트 입력
 │  ├─ (app)/settings/school/ 학교·담임/전담·담당 학급 설정
 │  └─ api/neis/schools/      학교 검색(서버가 NEIS 를 대신 호출)
-├─ features/                 기능별 컴포넌트·서버 액션 (auth, school, timetable, schedule, progress, assessment)
+├─ features/                 기능별 컴포넌트·서버 액션 (auth, school, timetable, schedule, progress, assessment, ai)
 ├─ lib/
+│  ├─ ai/                    AI 문체 교정 (server-only, 제공자 교체 가능한 인터페이스)
 │  ├─ neis/                  NEIS 클라이언트 (server-only, 인증키는 여기서만 사용)
 │  ├─ supabase/              Supabase 서버 클라이언트
 │  └─ date.ts                날짜·주차·학년도 계산
@@ -65,8 +67,9 @@ supabase/migrations/         스키마·RLS SQL
 - **학사일정**: NEIS 학사일정 + `custom_events`(직접 추가한 일정)를 요일 머리글과 목록에 표시합니다.
 - **진도**: 과목 → 단원 → 차시를 등록하고, 같은 학년 학급별로 수업한 차시를 체크합니다. 학급별 진도율과 다음 차시를 나란히 비교합니다.
 - **평가**: 과목별 평가를 만들고 학급의 학생 번호별로 A/B/C 등급과 생기부 코멘트를 기록합니다. 학생은 이름 없이 번호로만 관리하며, 결과는 "번호·등급·코멘트" 형식으로 복사할 수 있습니다.
+- **AI 문체 교정**: 설정에서 AI 모드를 켜고 학교별 작성 방법(문체 규칙)을 입력하면, 평가 코멘트를 그 규칙에 맞게 문체만 다듬은 제안을 받습니다. 제안은 교사가 "적용"을 눌러야 저장되며, AI 모드를 끄면 아무것도 전송하지 않습니다. 교사별 하루 200회로 제한합니다.
 - **데이터 분리**: 모든 테이블에 RLS 가 걸려 있어 교사는 자신의 행만 읽고 쓸 수 있습니다.
 
-## 이후 단계
+## AI 제공자 바꾸기
 
-4단계 AI 연동
+`src/lib/ai/types.ts` 의 `StyleCorrector` 를 구현한 파일을 추가하고 `src/lib/ai/index.ts` 에서 골라 주면 됩니다. (현재는 Gemini 만 구현)

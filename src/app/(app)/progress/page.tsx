@@ -56,9 +56,9 @@ export default async function ProgressPage({ searchParams }: Props) {
       ) : board.classrooms.length === 0 ? (
         <Notice
           title={`${subject.grade}학년 담당 학급이 없습니다`}
-          description="학교 설정에서 이 학년의 담당 학급을 추가해 주세요."
+          description="설정에서 이 학년의 담당 학급을 추가해 주세요."
           href="/settings/school"
-          linkLabel="학교 설정으로 이동"
+          linkLabel="설정으로 이동"
         />
       ) : (
         <ProgressBoard
