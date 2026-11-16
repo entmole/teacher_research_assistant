@@ -152,5 +152,37 @@ export async function setLessonProgress(input: SetProgressInput): Promise<Action
   }
 
   revalidatePath("/progress");
+  revalidatePath("/timetable");
   return ok();
+}
+
+/** 단원 순서를 한 칸 위(direction < 0) 또는 아래(direction > 0)로 옮긴다. */
+export async function moveUnit(unitId: string, direction: -1 | 1): Promise<ActionResult> {
+  await requireUser();
+  if (!isUuid(unitId) || (direction !== -1 && direction !== 1)) return fail("잘못된 요청입니다.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("move_unit", { p_unit_id: unitId, p_direction: direction });
+  if (error) return fail("순서를 바꾸지 못했습니다. 잠시 후 다시 시도해 주세요.");
+
+  revalidateProgressPages();
+  revalidatePath("/timetable");
+  return ok();
+}
+
+/** 지난 학년도의 과목(단원·차시 포함)을 올해 학년도로 복사한다. 진도 기록은 복사하지 않는다. */
+export async function importSubjectFromLastYear(subjectId: string): Promise<ActionResult> {
+  await requireUser();
+  if (!isUuid(subjectId)) return fail("잘못된 요청입니다.");
+
+  const supabase = await createClient();
+  const { data: newSubjectId, error } = await supabase.rpc("copy_subject_to_year", {
+    p_subject_id: subjectId,
+    p_school_year: schoolYearOf(todayKst()),
+  });
+  if (error?.code === UNIQUE_VIOLATION) return fail("올해 학년도에 이미 같은 과목이 있습니다.");
+  if (error || !newSubjectId) return fail("과목을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+
+  revalidateProgressPages();
+  redirect(`/progress/curriculum?subject=${newSubjectId}`);
 }

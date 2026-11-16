@@ -28,6 +28,26 @@ export function toClipboardText(results: StudentResult[]): string {
     .join("\n");
 }
 
+const CSV_HEADER = ["학급", "번호", "등급", "코멘트"];
+/** 엑셀이 한글을 올바로 읽도록 파일 맨 앞에 붙이는 표시(BOM) */
+const UTF8_BOM = "\uFEFF";
+
+function csvField(value: string | number): string {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+/** 결과를 엑셀에서 바로 열 수 있는 CSV 텍스트로 만든다. */
+export function toCsv(classLabel: string, results: StudentResult[]): string {
+  const rows = results.map((result) => [
+    classLabel,
+    result.studentNumber,
+    result.grade ?? "",
+    result.comment.trim(),
+  ]);
+  return UTF8_BOM + [CSV_HEADER, ...rows].map((row) => row.map(csvField).join(",")).join("\r\n");
+}
+
 export function isGrade(value: unknown): value is Grade {
   return GRADES.includes(value as Grade);
 }

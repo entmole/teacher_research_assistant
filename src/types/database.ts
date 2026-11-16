@@ -103,6 +103,7 @@ export type StudentRow = {
   classroom_id: string;
   student_number: number;
   is_active: boolean;
+  is_excluded: boolean;
   created_at: string;
 };
 
@@ -229,6 +230,18 @@ export type Database = {
       consume_ai_request: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      move_unit: {
+        Args: { p_unit_id: string; p_direction: number };
+        Returns: undefined;
+      };
+      copy_subject_to_year: {
+        Args: { p_subject_id: string; p_school_year: number };
+        Returns: string;
+      };
+      set_excluded_students: {
+        Args: { p_classroom_id: string; p_numbers: number[] };
+        Returns: undefined;
       };
       set_student_count: {
         Args: { p_classroom_id: string; p_count: number };

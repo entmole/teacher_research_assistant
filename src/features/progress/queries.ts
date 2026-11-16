@@ -3,6 +3,7 @@ import "server-only";
 import { schoolYearOf, todayKst } from "@/lib/date";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { ClassroomRef } from "@/features/timetable/types";
+import { buildProgressLinks, type ProgressLink, type SubjectWithUnits } from "./timetable-link";
 import type { ProgressRecord, SubjectRef, Unit } from "./types";
 
 /** 올해 학년도의 과목 목록 */
@@ -99,4 +100,50 @@ export async function loadProgressBoard(subject: SubjectRef): Promise<ProgressBo
       taughtOn: row.taught_on,
     })),
   };
+}
+
+/** 시간표 화면용: 담당 학급마다 과목별 다음 차시와 기록한 차시 */
+export async function loadProgressLinks(classrooms: ClassroomRef[]): Promise<ProgressLink[]> {
+  if (classrooms.length === 0) return [];
+  const grades = new Set(classrooms.map((classroom) => classroom.grade));
+  const subjects = (await loadSubjects()).filter((subject) => grades.has(subject.grade));
+  if (subjects.length === 0) return [];
+
+  const supabase = await createClient();
+  const [unitsBySubject, recordRows] = await Promise.all([
+    Promise.all(subjects.map((subject) => loadUnits(subject.id))),
+    supabase
+      .from("progress_records")
+      .select("classroom_id, lesson_id, taught_on")
+      .in(
+        "classroom_id",
+        classrooms.map((classroom) => classroom.id),
+      ),
+  ]);
+
+  const subjectsWithUnits: SubjectWithUnits[] = subjects.map((subject, index) => ({
+    ...subject,
+    units: unitsBySubject[index],
+  }));
+  const records: ProgressRecord[] = (recordRows.data ?? []).map((row) => ({
+    classroomId: row.classroom_id,
+    lessonId: row.lesson_id,
+    taughtOn: row.taught_on,
+  }));
+  return buildProgressLinks(classrooms, subjectsWithUnits, records);
+}
+
+/** 지난 학년도 과목 중 올해 아직 없는 과목 (작년 과목 가져오기용) */
+export async function loadImportableSubjects(currentSubjects: SubjectRef[]): Promise<SubjectRef[]> {
+  await requireUser();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("subjects")
+    .select("id, grade, name")
+    .eq("school_year", schoolYearOf(todayKst()) - 1)
+    .order("grade")
+    .order("name");
+
+  const existing = new Set(currentSubjects.map((subject) => `${subject.grade}|${subject.name}`));
+  return (data ?? []).filter((subject) => !existing.has(`${subject.grade}|${subject.name}`));
 }

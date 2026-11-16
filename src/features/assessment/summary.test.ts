@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { countGrades, isGrade, toClipboardText } from "./summary";
+import { countGrades, isGrade, toClipboardText, toCsv } from "./summary";
 import type { StudentResult } from "./types";
 
 const result = (partial: Partial<StudentResult>): StudentResult => ({
@@ -38,4 +38,15 @@ test("A/B/C 만 등급으로 인정한다", () => {
   assert.equal(isGrade("A"), true);
   assert.equal(isGrade("D"), false);
   assert.equal(isGrade(null), false);
+});
+
+test("CSV 는 머리글과 BOM 을 포함하고 쉼표·따옴표·줄바꿈을 감싼다", () => {
+  const csv = toCsv("5-1", [
+    result({ studentNumber: 1, grade: "A", comment: '정확하고, "유창"하게 말함.' }),
+    result({ studentNumber: 2, comment: "첫 줄\n둘째 줄" }),
+  ]);
+  assert.equal(
+    csv,
+    '\uFEFF학급,번호,등급,코멘트\r\n5-1,1,A,"정확하고, ""유창""하게 말함."\r\n5-1,2,,"첫 줄\n둘째 줄"',
+  );
 });

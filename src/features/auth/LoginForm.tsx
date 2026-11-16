@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
 import { authenticate } from "./actions";
@@ -38,6 +39,13 @@ export function LoginForm() {
         />
       </div>
 
+      <div>
+        <label htmlFor="login-invite" className={labelClass}>
+          초대 코드 (회원가입할 때만)
+        </label>
+        <input id="login-invite" name="inviteCode" autoComplete="off" className={inputClass} />
+      </div>
+
       {state && (
         <p
           role={state.ok ? "status" : "alert"}
@@ -69,6 +77,12 @@ export function LoginForm() {
           회원가입
         </button>
       </div>
+
+      <p className="text-center text-sm">
+        <Link href="/auth/reset" className="text-stone-600 underline-offset-2 hover:underline">
+          비밀번호를 잊으셨나요?
+        </Link>
+      </p>
     </form>
   );
 }

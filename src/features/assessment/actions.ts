@@ -102,6 +102,37 @@ export async function setStudentCount(input: {
   return ok();
 }
 
+/**
+ * 결번(전출 등) 번호 설정. "7, 15" 처럼 쉼표로 구분한 번호를 받는다.
+ * 결번은 입력표와 집계에서 빠지지만, 이미 입력한 결과는 지워지지 않는다.
+ */
+export async function setExcludedNumbers(input: {
+  classroomId: string;
+  numbersText: string;
+}): Promise<ActionResult> {
+  await requireUser();
+  if (!isUuid(input.classroomId)) return fail("잘못된 요청입니다.");
+
+  const tokens = String(input.numbersText ?? "")
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  const numbers = [...new Set(tokens.map(Number))];
+  const isValid = numbers.every(
+    (number) => Number.isInteger(number) && number >= 1 && number <= MAX_STUDENT_COUNT,
+  );
+  if (!isValid) return fail("결번은 번호를 쉼표로 구분해 입력해 주세요. (예: 7, 15)");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_excluded_students", {
+    p_classroom_id: input.classroomId,
+    p_numbers: numbers,
+  });
+  if (error) return fail("결번을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+
+  revalidatePath("/assessments", "layout");
+  return ok();
+}
+
 export type SaveResultInput = {
   assessmentId: string;
   studentId: string;

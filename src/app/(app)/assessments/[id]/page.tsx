@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AssessmentForm } from "@/features/assessment/AssessmentForm";
+import { ExcludedNumbersForm } from "@/features/assessment/ExcludedNumbersForm";
 import { DeleteAssessmentButton } from "@/features/assessment/DeleteAssessmentButton";
 import {
   loadAssessmentDetail,
@@ -40,11 +41,14 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pro
 
   const user = await requireUser();
   const supabase = await createClient();
-  const [units, results, profile] = await Promise.all([
+  const [units, classResults, profile] = await Promise.all([
     loadUnitOptions(subject.id),
-    classroom ? loadClassResults(assessment.id, classroom.id) : Promise.resolve([]),
+    classroom ? loadClassResults(assessment.id, classroom.id) : Promise.resolve(null),
     supabase.from("profiles").select("ai_enabled").eq("id", user.id).maybeSingle(),
   ]);
+  const results = classResults?.results ?? [];
+  const studentCount = classResults?.studentCount ?? 0;
+  const excludedNumbers = classResults?.excludedNumbers ?? [];
   const hasCriteria = GRADES.some((grade) => assessment.criteria[grade] !== "");
 
   return (
@@ -106,23 +110,34 @@ export default async function AssessmentDetailPage({ params, searchParams }: Pro
             </nav>
           )}
 
-          {/* 학급이나 학생 수가 바뀌면 입력 상태를 새로 만든다. */}
-          <StudentCountForm
-            key={`count-${classroom.id}-${results.length}`}
-            classroomId={classroom.id}
-            classroomName={classroomLabel(classroom)}
-            currentCount={results.length}
-          />
+          {/* 학급·학생 수·결번이 바뀌면 입력 상태를 새로 만든다. */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <StudentCountForm
+              key={`count-${classroom.id}-${studentCount}`}
+              classroomId={classroom.id}
+              classroomName={classroomLabel(classroom)}
+              currentCount={studentCount}
+            />
+            {studentCount > 0 && (
+              <ExcludedNumbersForm
+                key={`excluded-${classroom.id}-${excludedNumbers.join(",")}`}
+                classroomId={classroom.id}
+                excludedNumbers={excludedNumbers}
+              />
+            )}
+          </div>
 
-          {results.length === 0 ? (
+          {studentCount === 0 ? (
             <p className={`${cardClass} text-sm text-stone-600`}>
               학생 수를 입력하면 번호별 입력표가 만들어집니다. 학생 이름은 저장하지 않습니다.
             </p>
           ) : (
             <ResultsTable
-              key={`results-${classroom.id}-${results.length}`}
+              key={`results-${classroom.id}-${results.map((r) => r.studentNumber).join(",")}`}
               assessmentId={assessment.id}
               initialResults={results}
+              classLabel={classroomLabel(classroom)}
+              exportFileName={`${assessment.title}_${classroomLabel(classroom)}`}
               aiEnabled={profile.data?.ai_enabled ?? false}
             />
           )}

@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import type { ActionResult } from "@/lib/action-result";
 import { inputClass, labelClass, primaryButtonClass } from "@/lib/ui";
-import { deleteUnit, saveUnit } from "./actions";
+import { deleteUnit, moveUnit, saveUnit } from "./actions";
 import { parseLessonLines } from "./summary";
 import type { Unit } from "./types";
 
@@ -13,12 +13,17 @@ type Props = {
   unit: Unit | null;
   /** 화면에 표시할 단원 번호 */
   unitNo: number;
+  /** 전체 단원 수 (순서 이동 버튼의 사용 가능 여부 판단용) */
+  unitCount: number;
 };
 
 type Message = { kind: "error" | "success"; text: string };
 
+const moveButtonClass =
+  "flex h-8 w-8 items-center justify-center rounded-lg border border-stone-300 bg-white text-xs text-stone-600 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40";
+
 /** 단원 이름과 차시 목록(한 줄에 하나)을 편집한다. */
-export function UnitEditor({ subjectId, unit, unitNo }: Props) {
+export function UnitEditor({ subjectId, unit, unitNo, unitCount }: Props) {
   const savedLessonCount = unit?.lessons.length ?? 0;
   const [title, setTitle] = useState(unit?.title ?? "");
   const [lessonsText, setLessonsText] = useState(
@@ -116,11 +121,33 @@ export function UnitEditor({ subjectId, unit, unitNo }: Props) {
           </p>
         )}
         {unit && (
+          <span className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              disabled={isPending || unitNo === 1}
+              onClick={() => run(() => moveUnit(unit.id, -1), () => undefined)}
+              aria-label={`${unitNo}단원을 위로 옮기기`}
+              className={moveButtonClass}
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              disabled={isPending || unitNo === unitCount}
+              onClick={() => run(() => moveUnit(unit.id, 1), () => undefined)}
+              aria-label={`${unitNo}단원을 아래로 옮기기`}
+              className={moveButtonClass}
+            >
+              ▼
+            </button>
+          </span>
+        )}
+        {unit && (
           <button
             type="button"
             disabled={isPending}
             onClick={handleDelete}
-            className="ml-auto text-sm font-medium text-red-700 underline-offset-2 hover:underline disabled:opacity-50"
+            className="text-sm font-medium text-red-700 underline-offset-2 hover:underline disabled:opacity-50"
           >
             단원 삭제
           </button>

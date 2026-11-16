@@ -5,6 +5,8 @@ import { fetchSchoolEvents, fetchTimetable } from "@/lib/neis/api";
 import { isNeisSampleMode, NeisError } from "@/lib/neis/client";
 import type { NeisLesson, NeisSchoolEvent } from "@/lib/neis/types";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { loadProgressLinks } from "@/features/progress/queries";
+import type { ProgressLink } from "@/features/progress/timetable-link";
 import type { SchoolEvent } from "@/features/schedule/types";
 import { mergeTimetable, selectCellsForView } from "./merge";
 import {
@@ -26,6 +28,8 @@ export type TimetableWeek = {
   view: TimetableView | null;
   cells: TimetableCell[];
   events: SchoolEvent[];
+  /** 시간표 칸에서 바로 진도를 기록하기 위한 정보 */
+  progressLinks: ProgressLink[];
   /** NEIS 조회 실패 시 안내 문구 */
   neisError: string | null;
   isSampleMode: boolean;
@@ -137,6 +141,7 @@ export async function loadTimetableWeek(
   }
 
   const merged = mergeTimetable(classrooms, lessons, overrides);
+  const progressLinks = await loadProgressLinks(classrooms);
 
   return {
     schoolName: settings.data?.school_name ?? null,
@@ -146,6 +151,7 @@ export async function loadTimetableWeek(
     view,
     cells: view ? selectCellsForView(merged, view) : [],
     events: toSchoolEvents(neisEvents, customEventRows.data ?? []),
+    progressLinks,
     neisError,
     isSampleMode: isNeisSampleMode(),
   };

@@ -101,10 +101,11 @@ export default async function TimetablePage({ searchParams }: Props) {
         cells={week.cells}
         events={week.events}
         classrooms={week.classrooms}
+        progressLinks={week.progressLinks}
         fixedClassroomId={week.view?.kind === "classroom" ? week.view.classroomId : null}
       />
       <p className="text-xs text-stone-500">
-        칸을 누르면 과목을 수정할 수 있습니다. 초록 점은 직접 수정한 칸입니다.
+        칸을 누르면 과목을 수정하거나 진도를 기록할 수 있습니다. 초록 점은 직접 수정한 칸, ✓ 는 그날 기록한 차시입니다.
       </p>
 
       <EventPanel days={week.days} today={today} events={week.events} />

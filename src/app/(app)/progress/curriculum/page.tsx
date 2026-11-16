@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AddSubjectForm } from "@/features/progress/AddSubjectForm";
 import { DeleteSubjectButton } from "@/features/progress/DeleteSubjectButton";
-import { loadSubjects, loadUnits, pickSubject } from "@/features/progress/queries";
+import { ImportSubjectButton } from "@/features/progress/ImportSubjectButton";
+import {
+  loadImportableSubjects,
+  loadSubjects,
+  loadUnits,
+  pickSubject,
+} from "@/features/progress/queries";
 import { SubjectTabs } from "@/features/progress/SubjectTabs";
 import { subjectLabel } from "@/features/progress/types";
 import { UnitEditor } from "@/features/progress/UnitEditor";
@@ -20,7 +26,10 @@ const firstValue = (value: string | string[] | undefined) =>
 export default async function CurriculumPage({ searchParams }: Props) {
   const subjects = await loadSubjects();
   const subject = pickSubject(subjects, firstValue((await searchParams).subject));
-  const units = subject ? await loadUnits(subject.id) : [];
+  const [units, importableSubjects] = await Promise.all([
+    subject ? loadUnits(subject.id) : Promise.resolve([]),
+    loadImportableSubjects(subjects),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -45,6 +54,19 @@ export default async function CurriculumPage({ searchParams }: Props) {
         <div className={subjects.length > 0 ? "mt-4 border-t border-stone-200 pt-4" : ""}>
           <AddSubjectForm defaultGrade={subject?.grade ?? 1} />
         </div>
+        {importableSubjects.length > 0 && (
+          <div className="mt-4 border-t border-stone-200 pt-4">
+            <h3 className="text-sm font-medium text-stone-700">작년 과목 가져오기</h3>
+            <p className="mt-1 text-xs text-stone-500">
+              단원과 차시를 그대로 복사합니다. 진도 기록과 평가는 복사하지 않습니다.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {importableSubjects.map((item) => (
+                <ImportSubjectButton key={item.id} subject={item} />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {subject && (
@@ -62,6 +84,7 @@ export default async function CurriculumPage({ searchParams }: Props) {
                 subjectId={subject.id}
                 unit={unit}
                 unitNo={index + 1}
+                unitCount={units.length}
               />
             </section>
           ))}
@@ -72,6 +95,7 @@ export default async function CurriculumPage({ searchParams }: Props) {
               subjectId={subject.id}
               unit={null}
               unitNo={units.length + 1}
+              unitCount={units.length}
             />
           </section>
         </>

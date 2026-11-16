@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import type { ActionResult } from "@/lib/action-result";
 import { shortDate, weekdayLabel, type IsoDate } from "@/lib/date";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
+import { setLessonProgress } from "@/features/progress/actions";
+import type { ProgressLink } from "@/features/progress/timetable-link";
 import { resetTimetableOverride, saveTimetableOverride } from "./actions";
 import { COMMON_SUBJECTS } from "./subject-color";
 import { classroomLabel, type ClassroomRef, type TimetableCell } from "./types";
@@ -18,12 +20,20 @@ export type EditTarget = {
 type Props = {
   target: EditTarget;
   classrooms: ClassroomRef[];
+  /** 이 칸의 학급·과목에 연결된 진도 정보. 등록한 과목이 없으면 null */
+  progressLink: ProgressLink | null;
   fixedClassroomId: string | null;
   onClose: () => void;
 };
 
 /** 시간표 칸 수정 창 */
-export function CellEditor({ target, classrooms, fixedClassroomId, onClose }: Props) {
+export function CellEditor({
+  target,
+  classrooms,
+  progressLink,
+  fixedClassroomId,
+  onClose,
+}: Props) {
   const { date, period, cell } = target;
   const [classroomId, setClassroomId] = useState(
     cell?.classroomId ?? fixedClassroomId ?? classrooms[0]?.id ?? "",
@@ -43,14 +53,21 @@ export function CellEditor({ target, classrooms, fixedClassroomId, onClose }: Pr
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const run = (action: () => Promise<ActionResult>) => {
+  const run = (action: () => Promise<ActionResult>, closeOnSuccess = true) => {
     setError(null);
     startTransition(async () => {
       const result = await action();
-      if (result.ok) onClose();
-      else setError(result.error);
+      if (!result.ok) setError(result.error);
+      else if (closeOnSuccess) onClose();
     });
   };
+
+  /** 이 칸의 날짜로 차시 진도를 기록하거나 지운다. 창은 닫지 않는다. */
+  const recordProgress = (lessonId: string, done: boolean) => {
+    if (!cell) return;
+    run(() => setLessonProgress({ classroomId: cell.classroomId, lessonId, done, date }), false);
+  };
+  const taughtToday = progressLink?.taught.filter((lesson) => lesson.date === date) ?? [];
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -79,6 +96,45 @@ export function CellEditor({ target, classrooms, fixedClassroomId, onClose }: Pr
             ? `NEIS 원본: ${cell.neisSubject}`
             : "NEIS 시간표에 없는 칸입니다. 직접 추가할 수 있습니다."}
         </p>
+
+        {cell && progressLink && !cell.isCancelled && (
+          <section
+            aria-label="진도"
+            className="mt-4 space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3"
+          >
+            <h3 className="text-sm font-semibold text-emerald-900">
+              {progressLink.subjectName} 진도
+            </h3>
+            {taughtToday.map((lesson) => (
+              <p key={lesson.lessonId} className="flex items-start justify-between gap-2 text-sm">
+                <span className="text-stone-900">✓ {lesson.label}</span>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => recordProgress(lesson.lessonId, false)}
+                  className="shrink-0 text-xs font-medium text-stone-600 underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  기록 취소
+                </button>
+              </p>
+            ))}
+            {progressLink.nextLesson ? (
+              <p className="flex items-start justify-between gap-2 text-sm">
+                <span className="text-stone-700">다음: {progressLink.nextLesson.label}</span>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => recordProgress(progressLink.nextLesson!.lessonId, true)}
+                  className="shrink-0 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                >
+                  수업함으로 기록
+                </button>
+              </p>
+            ) : (
+              <p className="text-sm text-stone-600">모든 차시를 마쳤습니다.</p>
+            )}
+          </section>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>

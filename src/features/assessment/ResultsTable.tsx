@@ -5,7 +5,7 @@ import { correctCommentStyle } from "@/features/ai/actions";
 import { MAX_COMMENTS_PER_REQUEST } from "@/features/ai/types";
 import { secondaryButtonClass } from "@/lib/ui";
 import { saveResult } from "./actions";
-import { countGrades, toClipboardText } from "./summary";
+import { countGrades, toClipboardText, toCsv } from "./summary";
 import { GRADES, MAX_COMMENT_LENGTH, type Grade, type StudentResult } from "./types";
 
 type SaveStatus = "saving" | "saved" | "error";
@@ -14,6 +14,10 @@ type Notice = { kind: "info" | "error"; text: string };
 type Props = {
   assessmentId: string;
   initialResults: StudentResult[];
+  /** 학급 이름 (예: 5-1). 내보내는 파일의 학급 칸에 들어간다. */
+  classLabel: string;
+  /** 내보내는 파일 이름 (확장자 제외) */
+  exportFileName: string;
   /** 교사가 AI 모드를 켰는지. 꺼져 있으면 문체 교정 버튼을 보여 주지 않는다. */
   aiEnabled: boolean;
 };
@@ -32,7 +36,13 @@ const smallLinkButtonClass =
  * 등급은 누르는 즉시, 코멘트는 입력 칸을 벗어날 때 저장한다.
  * AI 모드가 켜져 있으면 코멘트의 문체 교정 제안을 받아 확인 후 적용할 수 있다.
  */
-export function ResultsTable({ assessmentId, initialResults, aiEnabled }: Props) {
+export function ResultsTable({
+  assessmentId,
+  initialResults,
+  classLabel,
+  exportFileName,
+  aiEnabled,
+}: Props) {
   const [results, setResults] = useState(initialResults);
   const [statusByStudent, setStatusByStudent] = useState<Record<string, SaveStatus>>({});
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -85,6 +95,21 @@ export function ResultsTable({ assessmentId, initialResults, aiEnabled }: Props)
     } catch {
       setCopyMessage("복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해 주세요.");
     }
+  };
+
+  /** 현재 화면의 결과를 엑셀에서 열 수 있는 CSV 파일로 내려받는다. */
+  const handleDownload = () => {
+    const blob = new Blob([toCsv(classLabel, results)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${exportFileName}.csv`;
+    // 일부 브라우저는 문서에 붙어 있는 링크만 파일 이름을 인정한다.
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // 내려받기가 시작된 뒤에 주소를 해제한다.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   /** 선택한 코멘트들의 문체 교정 제안을 한 번의 요청으로 받아 온다. */
@@ -170,6 +195,9 @@ export function ResultsTable({ assessmentId, initialResults, aiEnabled }: Props)
           )}
           <button type="button" onClick={handleCopy} className={secondaryButtonClass}>
             번호·등급·코멘트 복사
+          </button>
+          <button type="button" onClick={handleDownload} className={secondaryButtonClass}>
+            엑셀용 CSV 내려받기
           </button>
         </div>
       </div>

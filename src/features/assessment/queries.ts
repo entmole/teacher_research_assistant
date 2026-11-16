@@ -88,21 +88,36 @@ export async function loadAssessmentDetail(assessmentId: string): Promise<Assess
   };
 }
 
-/** 한 학급의 학생 번호별 평가 결과 (번호순, 활성 학생만) */
+export type ClassResults = {
+  /** 설정한 학생 수 (결번 포함) */
+  studentCount: number;
+  /** 결번(전출 등)으로 표시한 번호 */
+  excludedNumbers: number[];
+  /** 결번을 뺀 학생의 번호순 결과 */
+  results: StudentResult[];
+};
+
+/** 한 학급의 학생 번호별 평가 결과 */
 export async function loadClassResults(
   assessmentId: string,
   classroomId: string,
-): Promise<StudentResult[]> {
+): Promise<ClassResults> {
   await requireUser();
   const supabase = await createClient();
   const { data: studentRows } = await supabase
     .from("students")
-    .select("id, student_number")
+    .select("id, student_number, is_excluded")
     .eq("classroom_id", classroomId)
     .eq("is_active", true)
     .order("student_number");
-  const students = studentRows ?? [];
-  if (students.length === 0) return [];
+  const allStudents = studentRows ?? [];
+  const students = allStudents.filter((student) => !student.is_excluded);
+  const excludedNumbers = allStudents
+    .filter((student) => student.is_excluded)
+    .map((student) => student.student_number);
+  if (students.length === 0) {
+    return { studentCount: allStudents.length, excludedNumbers, results: [] };
+  }
 
   const { data: resultRows } = await supabase
     .from("assessment_results")
@@ -114,10 +129,14 @@ export async function loadClassResults(
     );
 
   const resultByStudent = new Map((resultRows ?? []).map((r) => [r.student_id, r]));
-  return students.map((student) => ({
-    studentId: student.id,
-    studentNumber: student.student_number,
-    grade: resultByStudent.get(student.id)?.grade ?? null,
-    comment: resultByStudent.get(student.id)?.comment ?? "",
-  }));
+  return {
+    studentCount: allStudents.length,
+    excludedNumbers,
+    results: students.map((student) => ({
+      studentId: student.id,
+      studentNumber: student.student_number,
+      grade: resultByStudent.get(student.id)?.grade ?? null,
+      comment: resultByStudent.get(student.id)?.comment ?? "",
+    })),
+  };
 }

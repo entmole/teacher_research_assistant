@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AiSettingsForm } from "@/features/ai/AiSettingsForm";
 import { ClassroomManager } from "@/features/school/ClassroomManager";
 import { ProfileForm } from "@/features/school/ProfileForm";
@@ -104,6 +105,19 @@ export default async function SchoolSettingsPage() {
           styleRules={profile.data?.style_rules ?? ""}
           isServerConfigured={isAiConfigured()}
         />
+      </section>
+
+      <section className={cardClass} aria-labelledby="account-section-title">
+        <h2 id="account-section-title" className="text-base font-semibold text-stone-900">
+          5. 계정
+        </h2>
+        <p className="mt-2 text-sm text-stone-700">{user.email}</p>
+        <Link
+          href="/auth/update-password"
+          className="mt-2 inline-block text-sm font-medium text-emerald-800 underline-offset-2 hover:underline"
+        >
+          비밀번호 변경
+        </Link>
       </section>
     </div>
   );

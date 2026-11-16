@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { shortDate, weekdayLabel, type IsoDate } from "@/lib/date";
+import { findProgressLink, type ProgressLink } from "@/features/progress/timetable-link";
 import type { SchoolEvent } from "@/features/schedule/types";
 import { CellEditor, type EditTarget } from "./CellEditor";
 import { subjectColorClass } from "./subject-color";
@@ -15,6 +16,7 @@ type Props = {
   cells: TimetableCell[];
   events: SchoolEvent[];
   classrooms: ClassroomRef[];
+  progressLinks: ProgressLink[];
   /** 한 학급만 보는 중이면 그 학급 id, 여러 학급을 함께 보면 null */
   fixedClassroomId: string | null;
 };
@@ -29,7 +31,15 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
 }
 
 /** 주간 시간표 격자. 칸을 누르면 수정 창이 열린다. */
-export function WeekGrid({ days, today, cells, events, classrooms, fixedClassroomId }: Props) {
+export function WeekGrid({
+  days,
+  today,
+  cells,
+  events,
+  classrooms,
+  progressLinks,
+  fixedClassroomId,
+}: Props) {
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const cellsBySlot = groupBy(cells, (cell) => slotKey(cell.date, cell.period));
@@ -37,6 +47,12 @@ export function WeekGrid({ days, today, cells, events, classrooms, fixedClassroo
   const lastPeriod = Math.max(MIN_PERIODS, ...cells.map((cell) => cell.period));
   const periods = Array.from({ length: lastPeriod }, (_, index) => index + 1);
   const showClassLabel = fixedClassroomId === null;
+
+  /** 그날 이 학급·과목에 기록한 차시 (예: ["1-2"]) */
+  const taughtLabelsFor = (cell: TimetableCell) =>
+    (findProgressLink(progressLinks, cell.classroomId, cell.subject)?.taught ?? [])
+      .filter((lesson) => lesson.date === cell.date)
+      .map((lesson) => lesson.shortLabel);
 
   return (
     <>
@@ -115,6 +131,7 @@ export function WeekGrid({ days, today, cells, events, classrooms, fixedClassroo
                           <LessonButton
                             key={cell.classroomId}
                             cell={cell}
+                            taughtLabels={taughtLabelsFor(cell)}
                             showClassLabel={showClassLabel}
                             onClick={() => setEditTarget({ date, period, cell })}
                           />
@@ -145,6 +162,11 @@ export function WeekGrid({ days, today, cells, events, classrooms, fixedClassroo
           key={`${slotKey(editTarget.date, editTarget.period)}|${editTarget.cell?.classroomId ?? "new"}`}
           target={editTarget}
           classrooms={classrooms}
+          progressLink={
+            editTarget.cell
+              ? findProgressLink(progressLinks, editTarget.cell.classroomId, editTarget.cell.subject)
+              : null
+          }
           fixedClassroomId={fixedClassroomId}
           onClose={() => setEditTarget(null)}
         />
@@ -155,10 +177,12 @@ export function WeekGrid({ days, today, cells, events, classrooms, fixedClassroo
 
 function LessonButton({
   cell,
+  taughtLabels,
   showClassLabel,
   onClick,
 }: {
   cell: TimetableCell;
+  taughtLabels: string[];
   showClassLabel: boolean;
   onClick: () => void;
 }) {
@@ -187,6 +211,11 @@ function LessonButton({
           {cell.subject}
         </span>
       </span>
+      {taughtLabels.length > 0 && (
+        <span className="mt-0.5 block truncate text-xs font-semibold opacity-80">
+          ✓ {taughtLabels.join(", ")}
+        </span>
+      )}
       {(cell.isCancelled || cell.memo) && (
         <span className="mt-0.5 block truncate text-xs opacity-80">
           {cell.isCancelled ? `수업 없음${cell.memo ? ` · ${cell.memo}` : ""}` : cell.memo}
