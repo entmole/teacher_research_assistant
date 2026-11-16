@@ -114,7 +114,7 @@ export function ClassroomManager({ schoolYear, classrooms, suggestions }: Props)
             id="classroom-grade"
             value={grade}
             onChange={(event) => setGrade(Number(event.target.value))}
-            className={`${inputClass} w-24`}
+            className={`${inputClass} w-24!`}
           >
             {GRADES.map((g) => (
               <option key={g} value={g}>
@@ -134,7 +134,7 @@ export function ClassroomManager({ schoolYear, classrooms, suggestions }: Props)
             maxLength={10}
             required
             placeholder="예: 1"
-            className={`${inputClass} w-24`}
+            className={`${inputClass} w-24!`}
           />
         </div>
         <button type="submit" disabled={isPending} className={secondaryButtonClass}>

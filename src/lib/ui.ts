@@ -1,4 +1,7 @@
-/** 여러 화면에서 함께 쓰는 Tailwind 클래스 묶음 */
+/**
+ * 여러 화면에서 함께 쓰는 Tailwind 클래스 묶음.
+ * inputClass 는 w-full 을 포함하므로 너비를 바꿀 때는 `w-24!` 처럼 ! 를 붙인다.
+ */
 export const inputClass =
   "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20";
 

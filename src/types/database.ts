@@ -59,6 +59,42 @@ export type CustomEventRow = {
   created_at: string;
 };
 
+export type SubjectRow = {
+  id: string;
+  owner_id: string;
+  school_year: number;
+  grade: number;
+  name: string;
+  created_at: string;
+};
+
+export type UnitRow = {
+  id: string;
+  owner_id: string;
+  subject_id: string;
+  order_no: number;
+  title: string;
+  created_at: string;
+};
+
+export type LessonRow = {
+  id: string;
+  owner_id: string;
+  unit_id: string;
+  order_no: number;
+  title: string;
+  created_at: string;
+};
+
+export type ProgressRecordRow = {
+  id: string;
+  owner_id: string;
+  classroom_id: string;
+  lesson_id: string;
+  taught_on: string;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -93,9 +129,35 @@ export type Database = {
         }
       >;
       custom_events: Table<CustomEventRow, { owner_id: string; date: string; title: string }>;
+      subjects: Table<
+        SubjectRow,
+        { owner_id: string; school_year: number; grade: number; name: string }
+      >;
+      units: Table<
+        UnitRow,
+        { owner_id: string; subject_id: string; order_no: number; title: string }
+      >;
+      lessons: Table<
+        LessonRow,
+        { owner_id: string; unit_id: string; order_no: number; title: string }
+      >;
+      progress_records: Table<
+        ProgressRecordRow,
+        { owner_id: string; classroom_id: string; lesson_id: string; taught_on: string }
+      >;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      save_unit: {
+        Args: {
+          p_subject_id: string;
+          p_unit_id: string | null;
+          p_title: string;
+          p_lessons: string[];
+        };
+        Returns: string;
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
