@@ -51,6 +51,8 @@ export type RawClassInfoRow = {
 };
 
 export type RawTimetableRow = {
+  /** 학기 ("1" 또는 "2") */
+  SEM?: string;
   ALL_TI_YMD: string;
   GRADE: string;
   CLASS_NM: string;

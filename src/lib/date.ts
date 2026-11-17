@@ -67,3 +67,18 @@ export function toNeisYmd(iso: IsoDate): string {
 export function fromNeisYmd(ymd: string): IsoDate {
   return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
 }
+
+/** 학년도 기간: 3월 1일부터 이듬해 2월 말일까지 */
+export function schoolYearRange(schoolYear: number): { from: IsoDate; to: IsoDate } {
+  return { from: `${schoolYear}-03-01`, to: addDays(`${schoolYear + 1}-03-01`, -1) };
+}
+
+/** from 부터 to 까지(양 끝 포함)의 평일(월~금) 날짜 목록 */
+export function weekdaysBetween(from: IsoDate, to: IsoDate): IsoDate[] {
+  const days: IsoDate[] = [];
+  for (let day = from; day <= to; day = addDays(day, 1)) {
+    const weekday = toUtcDate(day).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) days.push(day);
+  }
+  return days;
+}

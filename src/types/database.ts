@@ -71,6 +71,15 @@ export type SubjectRow = {
   created_at: string;
 };
 
+export type HourTargetRow = {
+  owner_id: string;
+  school_year: number;
+  grade: number;
+  subject_name: string;
+  hours: number;
+  updated_at: string;
+};
+
 export type TextbookRow = {
   id: string;
   grade: number;
@@ -215,6 +224,10 @@ export type Database = {
       progress_records: Table<
         ProgressRecordRow,
         { owner_id: string; classroom_id: string; lesson_id: string; taught_on: string }
+      >;
+      hour_targets: Table<
+        HourTargetRow,
+        { owner_id: string; school_year: number; grade: number; subject_name: string; hours: number }
       >;
       textbooks: Table<
         TextbookRow,

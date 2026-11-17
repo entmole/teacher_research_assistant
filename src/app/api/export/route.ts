@@ -14,6 +14,7 @@ const EXPORT_TABLES = [
   { table: "classrooms", orderBy: "id" },
   { table: "timetable_overrides", orderBy: "id" },
   { table: "custom_events", orderBy: "id" },
+  { table: "hour_targets", orderBy: "subject_name" },
   { table: "subjects", orderBy: "id" },
   { table: "units", orderBy: "id" },
   { table: "lessons", orderBy: "id" },

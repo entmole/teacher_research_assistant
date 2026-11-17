@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/timetable", label: "시간표" },
+  { href: "/hours", label: "시수" },
   { href: "/progress", label: "진도" },
   { href: "/assessments", label: "평가" },
   { href: "/settings/school", label: "설정" },

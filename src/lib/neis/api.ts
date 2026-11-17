@@ -87,6 +87,54 @@ export async function fetchTimetable(
     .filter((lesson) => lesson.subject !== "" && Number.isInteger(lesson.period));
 }
 
+export type ClassYearTimetable = {
+  lessons: NeisLesson[];
+  /** 2학기 첫 수업일. NEIS 에 2학기 시간표가 아직 없으면 null */
+  secondSemesterStart: IsoDate | null;
+};
+
+/**
+ * 한 학급의 기간 전체 시간표 (시수 집계용). 학년도 전체처럼 긴 기간을 한 학급만 조회한다.
+ * NEIS 는 방학·공휴일에도 내용이 빈 행을 주므로, 과목이 있는 행만 수업으로 센다.
+ */
+export async function fetchClassTimetable(
+  school: SchoolKey,
+  classroom: { grade: number; classNm: string },
+  from: IsoDate,
+  to: IsoDate,
+): Promise<ClassYearTimetable> {
+  const rows = await fetchNeisRows<RawTimetableRow>(
+    "elsTimetable",
+    {
+      ...schoolParams(school),
+      GRADE: String(classroom.grade),
+      CLASS_NM: classroom.classNm,
+      TI_FROM_YMD: toNeisYmd(from),
+      TI_TO_YMD: toNeisYmd(to),
+    },
+    { revalidate: ONE_HOUR },
+  );
+
+  const lessonRows = rows.filter((row) => (row.ITRT_CNTNT ?? "").trim() !== "");
+  const secondSemesterDates = lessonRows
+    .filter((row) => row.SEM === "2")
+    .map((row) => fromNeisYmd(row.ALL_TI_YMD))
+    .sort();
+
+  return {
+    lessons: lessonRows
+      .map((row) => ({
+        grade: Number(row.GRADE),
+        classNm: row.CLASS_NM,
+        date: fromNeisYmd(row.ALL_TI_YMD),
+        period: Number(row.PERIO),
+        subject: (row.ITRT_CNTNT ?? "").trim(),
+      }))
+      .filter((lesson) => Number.isInteger(lesson.period)),
+    secondSemesterStart: secondSemesterDates[0] ?? null,
+  };
+}
+
 const GRADE_FLAG_KEYS = [
   "ONE_GRADE_EVENT_YN",
   "TW_GRADE_EVENT_YN",
