@@ -11,8 +11,13 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** 회원가입 실패 원인별 안내 문구. 원인을 구분해야 사용자가 무엇을 고칠지 알 수 있다. */
 function signUpErrorMessage(error: { code?: string; status?: number }): string {
-  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
-    return "지금은 가입 확인 메일을 보낼 수 없습니다(메일 발송 한도 초과). 잠시 후 다시 시도하거나 관리자에게 알려 주세요.";
+  // Supabase 기본 메일은 시간당 발송 수가 적고, 프로젝트 팀원 주소로만 보낼 수 있다.
+  if (
+    error.code === "over_email_send_rate_limit" ||
+    error.code === "email_address_not_authorized" ||
+    error.status === 429
+  ) {
+    return "지금은 가입 확인 메일을 보낼 수 없습니다. 관리자에게 알려 주세요.";
   }
   if (error.code === "user_already_exists") {
     return "이미 가입된 이메일입니다. 로그인하거나 비밀번호 재설정을 이용해 주세요.";
