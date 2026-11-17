@@ -78,9 +78,17 @@ supabase/migrations/         스키마·RLS SQL
 - **교과서 자료실**: 학년·과목·출판사별 단원·차시를 교사끼리 공유합니다. 진도표(엑셀 표나 텍스트)를 붙여넣어 단원·차시를 한꺼번에 만들고, "자료실에 공유"하면 다른 교사가 불러와 고쳐 쓸 수 있습니다. 불러온 내용은 복사본이라 자료실이 바뀌어도 영향이 없습니다.
 - **학생별 종합 보기**: 한 학급의 모든 평가 등급과 코멘트를 학생 번호별로 모아 보고, 코멘트를 이어 붙여 복사합니다.
 - **데이터 백업**: 설정 화면에서 내 데이터 전체를 JSON 파일로 내려받습니다.
-- **가입 제한**: DB 의 `private.app_settings` 에 `signup_invite_code` 값이 있으면 그 초대 코드를 입력해야 가입됩니다.
+- **로그인**: 이메일·비밀번호 또는 카카오로 로그인합니다.
+- **가입 제한(초대 코드)**: DB 의 `private.app_settings` 에 `signup_invite_code` 값이 있으면 초대 코드가 필요합니다. 이메일 가입은 가입할 때, 카카오 가입은 첫 로그인 직후에 한 번 입력합니다. 초대가 확인되기 전에는 어떤 화면도 쓸 수 없습니다.
 - **비밀번호**: 로그인 화면의 "비밀번호를 잊으셨나요?"로 재설정 메일을 받고, 설정 화면에서 비밀번호를 바꿀 수 있습니다.
 - **데이터 분리**: 모든 테이블에 RLS 가 걸려 있어 교사는 자신의 행만 읽고 쓸 수 있습니다.
+
+## 카카오 로그인 설정
+
+1. [Kakao Developers](https://developers.kakao.com) 에서 애플리케이션을 만들고 카카오 로그인을 켭니다.
+2. Redirect URI 에 `https://<프로젝트>.supabase.co/auth/v1/callback` 을 등록합니다.
+3. REST API 키와 Client Secret 을 Supabase > Authentication > Sign In / Providers > Kakao 에 입력합니다.
+4. 카카오 동의 항목에서 이메일을 받을 수 없으면 Supabase 의 Kakao 설정에서 "Allow users without an email" 을 켭니다.
 
 ## 초대 코드 바꾸기
 

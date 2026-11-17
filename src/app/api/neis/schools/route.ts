@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { searchElementarySchools } from "@/lib/neis/api";
 import { NeisError } from "@/lib/neis/client";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getApprovedUser } from "@/lib/supabase/server";
 
 const MIN_QUERY_LENGTH = 2;
 const MAX_QUERY_LENGTH = 30;
 
 /** 학교명 검색. NEIS 인증키를 숨기기 위해 서버가 대신 호출한다. (로그인 필요) */
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getApprovedUser();
   if (!user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }

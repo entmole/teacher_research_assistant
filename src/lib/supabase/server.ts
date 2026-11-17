@@ -33,9 +33,34 @@ export const getCurrentUser = cache(async () => {
   return data.user;
 });
 
-/** 로그인이 필요한 화면·액션에서 사용. 비로그인 시 로그인 화면으로 보낸다. */
+/** 초대 코드를 확인받은 교사인지. 요청당 한 번만 조회한다. */
+const isInvited = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("invited_at")
+    .eq("id", userId)
+    .maybeSingle();
+  return Boolean(data?.invited_at);
+});
+
+/** 초대 코드 입력 화면의 주소 */
+export const INVITE_PATH = "/invite";
+
+/**
+ * 로그인이 필요한 화면·액션에서 사용.
+ * 비로그인이면 로그인 화면으로, 초대 코드를 아직 확인받지 않았으면 초대 코드 화면으로 보낸다.
+ */
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (!(await isInvited(user.id))) redirect(INVITE_PATH);
+  return user;
+}
+
+/** API 라우트용: 로그인했고 초대도 확인된 교사면 돌려주고, 아니면 null */
+export async function getApprovedUser() {
+  const user = await getCurrentUser();
+  if (!user || !(await isInvited(user.id))) return null;
   return user;
 }

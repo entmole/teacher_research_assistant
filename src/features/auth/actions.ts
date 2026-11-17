@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
-import { createClient, requireUser } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, requireUser } from "@/lib/supabase/server";
 import { POST_AUTH_REDIRECT_COOKIE, UPDATE_PASSWORD_PATH } from "./constants";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -122,4 +122,39 @@ export async function updatePassword(
   if (error) return fail("비밀번호를 바꾸지 못했습니다. 다른 비밀번호로 다시 시도해 주세요.");
 
   return ok("비밀번호를 바꿨습니다.");
+}
+
+/** 카카오 로그인 시작: 카카오 동의 화면으로 보낸다. 돌아오면 /auth/callback 이 세션을 만든다. */
+export async function signInWithKakao(): Promise<void> {
+  const origin = (await headers()).get("origin") ?? "";
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "kakao",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) redirect("/login?error=kakao");
+  redirect(data.url);
+}
+
+/**
+ * 초대 코드 확인 (useActionState 용).
+ * 카카오로 처음 로그인한 교사는 초대 코드를 입력해야 앱을 쓸 수 있다.
+ */
+export async function redeemInvite(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  // 아직 초대되지 않은 사용자가 쓰는 액션이므로 requireUser 대신 로그인 여부만 확인한다.
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const code = String(formData.get("inviteCode") ?? "").trim();
+  if (code.length === 0) return fail("초대 코드를 입력해 주세요.");
+
+  const supabase = await createClient();
+  const { data: isAccepted, error } = await supabase.rpc("redeem_invite", { p_code: code });
+  if (error) return fail("확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  if (!isAccepted) return fail("초대 코드가 올바르지 않습니다.");
+
+  redirect("/timetable");
 }

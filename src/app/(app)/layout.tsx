@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <NavLinks />
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-stone-500 sm:inline">{user.email}</span>
+            <span className="hidden text-xs text-stone-500 sm:inline">{user.email ?? "카카오 계정"}</span>
             <form action={signOut}>
               <button
                 type="submit"

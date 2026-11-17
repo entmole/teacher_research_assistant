@@ -111,13 +111,16 @@ export default async function SchoolSettingsPage() {
         <h2 id="account-section-title" className="text-base font-semibold text-stone-900">
           5. 계정
         </h2>
-        <p className="mt-2 text-sm text-stone-700">{user.email}</p>
-        <Link
-          href="/auth/update-password"
-          className="mt-2 inline-block text-sm font-medium text-emerald-800 underline-offset-2 hover:underline"
-        >
-          비밀번호 변경
-        </Link>
+        <p className="mt-2 text-sm text-stone-700">{user.email ?? "카카오 계정"}</p>
+        {/* 비밀번호는 이메일로 가입한 계정에만 있다. */}
+        {user.app_metadata.provider === "email" && (
+          <Link
+            href="/auth/update-password"
+            className="mt-2 inline-block text-sm font-medium text-emerald-800 underline-offset-2 hover:underline"
+          >
+            비밀번호 변경
+          </Link>
+        )}
       </section>
 
       <section className={cardClass} aria-labelledby="backup-section-title">

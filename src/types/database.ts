@@ -17,6 +17,8 @@ export type ProfileRow = {
   specialist_subjects: string[];
   ai_enabled: boolean;
   style_rules: string;
+  /** 초대 코드를 확인받은 시각. 비어 있으면 아직 앱을 쓸 수 없다. */
+  invited_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -302,6 +304,10 @@ export type Database = {
       share_subject: {
         Args: { p_subject_id: string; p_semester: number; p_publisher: string; p_note: string };
         Returns: string;
+      };
+      redeem_invite: {
+        Args: { p_code: string };
+        Returns: boolean;
       };
       set_student_count: {
         Args: { p_classroom_id: string; p_count: number };

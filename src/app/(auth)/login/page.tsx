@@ -12,7 +12,12 @@ type Props = {
 
 export default async function LoginPage({ searchParams }: Props) {
   if (await getCurrentUser()) redirect("/timetable");
-  const hasCallbackError = (await searchParams).error !== undefined;
+  const errorParam = (await searchParams).error;
+  const hasCallbackError = errorParam !== undefined;
+  const errorMessage =
+    errorParam === "kakao"
+      ? "카카오 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요."
+      : "로그인을 완료하지 못했습니다. 인증 링크가 만료되었거나 동의가 취소되었을 수 있습니다. 다시 시도해 주세요.";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
@@ -24,7 +29,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <div className={`${cardClass} mt-6`}>
           {hasCallbackError && (
             <p role="alert" className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              인증 링크가 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.
+              {errorMessage}
             </p>
           )}
           <LoginForm />

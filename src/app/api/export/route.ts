@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { todayKst } from "@/lib/date";
 import { fetchAllPages } from "@/lib/supabase/paginate";
-import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createClient, getApprovedUser } from "@/lib/supabase/server";
 
 /**
  * 내려받을 표와 정렬 기준. 모두 RLS 로 "내 행"만 조회된다.
@@ -26,7 +26,7 @@ const EXPORT_TABLES = [
 
 /** 내 데이터 전체를 JSON 파일로 내려받는다. (백업용, 로그인 필요) */
 export async function GET() {
-  const user = await getCurrentUser();
+  const user = await getApprovedUser();
   if (!user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
