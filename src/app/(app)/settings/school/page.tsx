@@ -119,6 +119,24 @@ export default async function SchoolSettingsPage() {
           비밀번호 변경
         </Link>
       </section>
+
+      <section className={cardClass} aria-labelledby="backup-section-title">
+        <h2 id="backup-section-title" className="text-base font-semibold text-stone-900">
+          6. 데이터 백업
+        </h2>
+        <p className="mt-2 text-sm text-stone-600">
+          내가 입력한 학급, 시간표 수정, 일정, 과목·단원·차시, 진도, 평가 결과를 파일 하나로
+          내려받습니다. 학기말이나 큰 수정 전에 받아 두면 좋습니다.
+        </p>
+        {/* 파일 내려받기이므로 화면 이동용 Link 대신 일반 링크를 쓴다. */}
+        <a
+          href="/api/export"
+          download
+          className="mt-3 inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+        >
+          내 데이터 내려받기 (JSON)
+        </a>
+      </section>
     </div>
   );
 }

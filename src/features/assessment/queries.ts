@@ -1,9 +1,11 @@
 import "server-only";
 
 import { schoolYearOf, todayKst } from "@/lib/date";
+import { fetchAllPages } from "@/lib/supabase/paginate";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { SubjectRef } from "@/features/progress/types";
 import type { ClassroomRef } from "@/features/timetable/types";
+import type { OverviewAssessment, OverviewResult } from "./overview";
 import type { Assessment, AssessmentSummary, StudentResult } from "./types";
 
 /** 과목의 평가 목록 (최근에 만든 순) */
@@ -137,6 +139,87 @@ export async function loadClassResults(
       studentNumber: student.student_number,
       grade: resultByStudent.get(student.id)?.grade ?? null,
       comment: resultByStudent.get(student.id)?.comment ?? "",
+    })),
+  };
+}
+
+export type ClassOverviewData = {
+  students: { id: string; studentNumber: number }[];
+  assessments: OverviewAssessment[];
+  results: OverviewResult[];
+};
+
+/** 학생별 종합 보기용: 한 학급의 학생, 그 학년 과목의 모든 평가, 평가 결과 */
+export async function loadClassOverview(classroom: ClassroomRef): Promise<ClassOverviewData> {
+  await requireUser();
+  const supabase = await createClient();
+
+  const [studentRows, subjectRows] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, student_number")
+      .eq("classroom_id", classroom.id)
+      .eq("is_active", true)
+      .eq("is_excluded", false)
+      .order("student_number"),
+    supabase
+      .from("subjects")
+      .select("id, name")
+      .eq("school_year", schoolYearOf(todayKst()))
+      .eq("grade", classroom.grade)
+      .order("name"),
+  ]);
+  const students = (studentRows.data ?? []).map((row) => ({
+    id: row.id,
+    studentNumber: row.student_number,
+  }));
+  const subjects = subjectRows.data ?? [];
+  if (students.length === 0 || subjects.length === 0) {
+    return { students, assessments: [], results: [] };
+  }
+
+  const { data: assessmentRows } = await supabase
+    .from("assessments")
+    .select("id, title, subject_id")
+    .in(
+      "subject_id",
+      subjects.map((subject) => subject.id),
+    )
+    .order("created_at");
+  const subjectNameById = new Map(subjects.map((subject) => [subject.id, subject.name]));
+  // 과목 순서대로 묶고, 과목 안에서는 만든 순서대로 둔다.
+  const assessments: OverviewAssessment[] = subjects.flatMap((subject) =>
+    (assessmentRows ?? [])
+      .filter((row) => row.subject_id === subject.id)
+      .map((row) => ({
+        id: row.id,
+        title: row.title,
+        subjectName: subjectNameById.get(row.subject_id) ?? "",
+      })),
+  );
+  if (assessments.length === 0) return { students, assessments, results: [] };
+
+  // 학생 수 × 평가 수만큼 행이 생기므로 1000행을 넘을 수 있다.
+  const resultRows = await fetchAllPages((from, to) =>
+    supabase
+      .from("assessment_results")
+      .select("student_id, assessment_id, grade, comment")
+      .in(
+        "student_id",
+        students.map((student) => student.id),
+      )
+      .order("id")
+      .range(from, to),
+  );
+
+  return {
+    students,
+    assessments,
+    results: resultRows.map((row) => ({
+      studentId: row.student_id,
+      assessmentId: row.assessment_id,
+      grade: row.grade,
+      comment: row.comment,
     })),
   };
 }

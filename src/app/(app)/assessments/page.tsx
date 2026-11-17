@@ -5,7 +5,7 @@ import { loadAssessments, loadUnitOptions } from "@/features/assessment/queries"
 import { loadSubjects, pickSubject } from "@/features/progress/queries";
 import { SubjectTabs } from "@/features/progress/SubjectTabs";
 import { subjectLabel } from "@/features/progress/types";
-import { cardClass, primaryButtonClass } from "@/lib/ui";
+import { cardClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "평가 기록" };
 
@@ -39,7 +39,12 @@ export default async function AssessmentsPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <h1 className="text-2xl font-bold text-stone-900">{subjectLabel(subject)} 평가</h1>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="text-2xl font-bold text-stone-900">{subjectLabel(subject)} 평가</h1>
+        <Link href="/assessments/overview" className={secondaryButtonClass}>
+          학생별 종합 보기
+        </Link>
+      </header>
       <SubjectTabs subjects={subjects} activeSubjectId={subject.id} basePath="/assessments" />
 
       <section className={cardClass} aria-labelledby="assessment-list-title">

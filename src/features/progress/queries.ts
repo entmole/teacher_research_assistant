@@ -1,6 +1,7 @@
 import "server-only";
 
 import { schoolYearOf, todayKst } from "@/lib/date";
+import { fetchAllPages } from "@/lib/supabase/paginate";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { ClassroomRef } from "@/features/timetable/types";
 import { buildProgressLinks, type ProgressLink, type SubjectWithUnits } from "./timetable-link";
@@ -86,15 +87,24 @@ export async function loadProgressBoard(subject: SubjectRef): Promise<ProgressBo
     return { units, classrooms, records: [] };
   }
 
-  const { data: recordRows } = await supabase
-    .from("progress_records")
-    .select("classroom_id, lesson_id, taught_on")
-    .in("lesson_id", lessonIds);
+  // 학급 수 × 차시 수만큼 행이 생기므로 1000행을 넘을 수 있다.
+  const recordRows = await fetchAllPages((from, to) =>
+    supabase
+      .from("progress_records")
+      .select("classroom_id, lesson_id, taught_on")
+      .in(
+        "classroom_id",
+        classrooms.map((classroom) => classroom.id),
+      )
+      .in("lesson_id", lessonIds)
+      .order("id")
+      .range(from, to),
+  );
 
   return {
     units,
     classrooms,
-    records: (recordRows ?? []).map((row) => ({
+    records: recordRows.map((row) => ({
       classroomId: row.classroom_id,
       lessonId: row.lesson_id,
       taughtOn: row.taught_on,
@@ -112,20 +122,24 @@ export async function loadProgressLinks(classrooms: ClassroomRef[]): Promise<Pro
   const supabase = await createClient();
   const [unitsBySubject, recordRows] = await Promise.all([
     Promise.all(subjects.map((subject) => loadUnits(subject.id))),
-    supabase
-      .from("progress_records")
-      .select("classroom_id, lesson_id, taught_on")
-      .in(
-        "classroom_id",
-        classrooms.map((classroom) => classroom.id),
-      ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("progress_records")
+        .select("classroom_id, lesson_id, taught_on")
+        .in(
+          "classroom_id",
+          classrooms.map((classroom) => classroom.id),
+        )
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   const subjectsWithUnits: SubjectWithUnits[] = subjects.map((subject, index) => ({
     ...subject,
     units: unitsBySubject[index],
   }));
-  const records: ProgressRecord[] = (recordRows.data ?? []).map((row) => ({
+  const records: ProgressRecord[] = recordRows.map((row) => ({
     classroomId: row.classroom_id,
     lessonId: row.lesson_id,
     taughtOn: row.taught_on,
