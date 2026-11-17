@@ -9,6 +9,24 @@ import { POST_AUTH_REDIRECT_COOKIE, UPDATE_PASSWORD_PATH } from "./constants";
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** 회원가입 실패 원인별 안내 문구. 원인을 구분해야 사용자가 무엇을 고칠지 알 수 있다. */
+function signUpErrorMessage(error: { code?: string; status?: number }): string {
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    return "지금은 가입 확인 메일을 보낼 수 없습니다(메일 발송 한도 초과). 잠시 후 다시 시도하거나 관리자에게 알려 주세요.";
+  }
+  if (error.code === "user_already_exists") {
+    return "이미 가입된 이메일입니다. 로그인하거나 비밀번호 재설정을 이용해 주세요.";
+  }
+  if (error.code === "weak_password") {
+    return "비밀번호가 너무 단순합니다. 더 길고 복잡한 비밀번호를 사용해 주세요.";
+  }
+  if (error.code === "unexpected_failure") {
+    // 초대 코드가 틀리면 DB 트리거가 가입을 막아 이 오류가 된다.
+    return "회원가입에 실패했습니다. 초대 코드를 확인해 주세요.";
+  }
+  return "회원가입에 실패했습니다. 초대 코드와 입력 내용을 확인해 주세요.";
+}
+
 /** 로그인·회원가입 (useActionState 용). 버튼의 intent 값으로 구분한다. */
 export async function authenticate(
   _previous: ActionResult | null,
@@ -34,11 +52,14 @@ export async function authenticate(
       // 초대 코드는 DB 트리거(private.check_signup_invite)가 검사한다.
       options: { emailRedirectTo: `${origin}/auth/callback`, data: { invite_code: inviteCode } },
     });
-    if (error) return fail("회원가입에 실패했습니다. 초대 코드와 입력 내용을 확인해 주세요.");
+    if (error) return fail(signUpErrorMessage(error));
     // 이메일 확인이 켜져 있으면 세션이 바로 생기지 않는다.
     if (!data.session) return ok("확인 메일을 보냈습니다. 메일의 링크를 누른 뒤 로그인해 주세요.");
   } else {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error?.code === "email_not_confirmed") {
+      return fail("이메일 확인이 끝나지 않은 계정입니다. 받은 메일의 링크를 누르거나 관리자에게 알려 주세요.");
+    }
     if (error) return fail("이메일 또는 비밀번호가 올바르지 않습니다.");
   }
 
