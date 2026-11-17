@@ -67,6 +67,33 @@ export type SubjectRow = {
   school_year: number;
   grade: number;
   name: string;
+  textbook_id: string | null;
+  created_at: string;
+};
+
+export type TextbookRow = {
+  id: string;
+  grade: number;
+  /** 1학기·2학기, 학년 전체면 0 */
+  semester: number;
+  subject: string;
+  publisher: string;
+  created_by: string | null;
+  created_at: string;
+};
+
+/** 자료실에 저장되는 단원·차시 내용 */
+export type TextbookContent = { title: string; lessons: string[] }[];
+
+export type TextbookVersionRow = {
+  id: string;
+  textbook_id: string;
+  owner_id: string | null;
+  kind: "base" | "shared";
+  note: string;
+  content: TextbookContent;
+  unit_count: number;
+  lesson_count: number;
   created_at: string;
 };
 
@@ -189,6 +216,14 @@ export type Database = {
         ProgressRecordRow,
         { owner_id: string; classroom_id: string; lesson_id: string; taught_on: string }
       >;
+      textbooks: Table<
+        TextbookRow,
+        { grade: number; semester?: number; subject: string; publisher: string }
+      >;
+      textbook_versions: Table<
+        TextbookVersionRow,
+        { textbook_id: string; note?: string; content: TextbookContent }
+      >;
       students: Table<
         StudentRow,
         { owner_id: string; classroom_id: string; student_number: number; is_active?: boolean }
@@ -242,6 +277,18 @@ export type Database = {
       set_excluded_students: {
         Args: { p_classroom_id: string; p_numbers: number[] };
         Returns: undefined;
+      };
+      append_units: {
+        Args: { p_subject_id: string; p_content: TextbookContent };
+        Returns: number;
+      };
+      import_textbook_version: {
+        Args: { p_version_id: string; p_school_year: number };
+        Returns: string;
+      };
+      share_subject: {
+        Args: { p_subject_id: string; p_semester: number; p_publisher: string; p_note: string };
+        Returns: string;
       };
       set_student_count: {
         Args: { p_classroom_id: string; p_count: number };

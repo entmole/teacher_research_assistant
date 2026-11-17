@@ -12,6 +12,9 @@ import {
 import { SubjectTabs } from "@/features/progress/SubjectTabs";
 import { subjectLabel } from "@/features/progress/types";
 import { UnitEditor } from "@/features/progress/UnitEditor";
+import { PasteImporter } from "@/features/textbook/PasteImporter";
+import { loadSubjectTextbook } from "@/features/textbook/queries";
+import { ShareSubjectForm } from "@/features/textbook/ShareSubjectForm";
 import { cardClass, secondaryButtonClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "과목·단원 편집" };
@@ -26,9 +29,10 @@ const firstValue = (value: string | string[] | undefined) =>
 export default async function CurriculumPage({ searchParams }: Props) {
   const subjects = await loadSubjects();
   const subject = pickSubject(subjects, firstValue((await searchParams).subject));
-  const [units, importableSubjects] = await Promise.all([
+  const [units, importableSubjects, linkedTextbook] = await Promise.all([
     subject ? loadUnits(subject.id) : Promise.resolve([]),
     loadImportableSubjects(subjects),
+    subject ? loadSubjectTextbook(subject.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -53,6 +57,14 @@ export default async function CurriculumPage({ searchParams }: Props) {
         />
         <div className={subjects.length > 0 ? "mt-4 border-t border-stone-200 pt-4" : ""}>
           <AddSubjectForm defaultGrade={subject?.grade ?? 1} />
+        </div>
+        <div className="mt-4 border-t border-stone-200 pt-4">
+          <Link
+            href={`/progress/textbooks${subject ? `?grade=${subject.grade}` : ""}`}
+            className="text-sm font-medium text-emerald-800 underline-offset-2 hover:underline"
+          >
+            교과서 자료실에서 단원·차시 불러오기 →
+          </Link>
         </div>
         {importableSubjects.length > 0 && (
           <div className="mt-4 border-t border-stone-200 pt-4">
@@ -88,6 +100,31 @@ export default async function CurriculumPage({ searchParams }: Props) {
               />
             </section>
           ))}
+
+          <details className={cardClass}>
+            <summary className="cursor-pointer text-sm font-semibold text-stone-900">
+              진도표 붙여넣어 한꺼번에 추가
+            </summary>
+            <div className="mt-4">
+              <PasteImporter subjectId={subject.id} />
+            </div>
+          </details>
+
+          {units.length > 0 && (
+            <details className={cardClass}>
+              <summary className="cursor-pointer text-sm font-semibold text-stone-900">
+                교과서 자료실에 공유
+              </summary>
+              <div className="mt-4">
+                <ShareSubjectForm
+                  key={`${subject.id}-${linkedTextbook?.publisher ?? ""}`}
+                  subjectId={subject.id}
+                  defaultSemester={linkedTextbook?.semester ?? 0}
+                  defaultPublisher={linkedTextbook?.publisher ?? ""}
+                />
+              </div>
+            </details>
+          )}
 
           <section className={`${cardClass} border-dashed`} aria-label="새 단원 추가">
             <UnitEditor
